@@ -1,0 +1,43 @@
+name: Deploy Lambda Function
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Zip Lambda function
+        run: |
+          cd insurancedb
+          zip -r ../lambda_function.zip notebook.py
+          cd ..
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}       # ✅ Safe
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }} # ✅ Safe
+          aws-region: ap-south-1
+
+      - name: Deploy Lambda Function
+        run: |
+          FN="cicd_ajay_lambda"
+          ZIP="lambda_function.zip"
+          ROLE_ARN="${{ secrets.AWS_LAMBDA_ROLE_ARN }}"  # ✅ Safe
+
+          if aws lambda get-function --function-name "$FN" >/dev/null 2>&1; then
+            aws lambda update-function-code --function-name "$FN" --zip-file fileb://$ZIP --region ap-south-1
+          else
+            aws lambda create-function --function-name "$FN" \
+              --runtime python3.10 \
+              --role "$ROLE_ARN" \
+              --handler notebook.lambda_handler \
+              --zip-file fileb://$ZIP \
+              --region ap-south-1
+          fi
