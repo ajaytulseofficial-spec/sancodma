@@ -1,0 +1,37 @@
+name: Deploy Lambda Function
+
+on:
+  push:
+    branches:
+      - dev   # run only when pushing to dev branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Checkout repo
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Step 2: Zip notebook.py
+      - name: Package Lambda function
+        run: zip lambda_function.zip insurancedb/notebook.py
+
+      # Step 3: Deploy to AWS Lambda
+      - name: Deploy Lambda Function
+        run: |
+          aws lambda create-function \
+            --function-name cicd_ajay_lambda \
+            --runtime python3.8 \
+            --role ${{ secrets.AWS_LAMBDA_ROLE_ARN }} \
+            --handler notebook.lambda_handler \
+            --zip-file fileb://lambda_function.zip \
+            --region ap-south-1 || \
+          aws lambda update-function-code \
+            --function-name cicd_ajay_lambda \
+            --zip-file fileb://lambda_function.zip \
+            --region ap-south-1
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ap-south-1
