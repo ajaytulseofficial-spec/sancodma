@@ -3,7 +3,7 @@ name: Deploy Lambda Function
 on:
   push:
     branches:
-      - dev
+      - dev   # ✅ Workflow triggers when you push to "dev" branch
 
 jobs:
   deploy:
@@ -15,29 +15,35 @@ jobs:
       - name: Zip Lambda function
         run: |
           cd insurancedb
-          zip -r ../lambda_function.zip notebook.py
+          zip -r ../lambda_function.zip lambda_function.py   # ✅ Using lambda_function.py
           cd ..
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}       # ✅ Safe
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }} # ✅ Safe
-          aws-region: ap-south-1
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}          # ✅ GitHub Secret
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}  # ✅ GitHub Secret
+          aws-region: ap-south-1   # ✅ Change if your Lambda is in another AWS region
 
       - name: Deploy Lambda Function
         run: |
-          FN="cicd_ajay_lambda"
+          FN="cicd_ajay_lambda"     # ✅ Replace with your Lambda function name if different
           ZIP="lambda_function.zip"
-          ROLE_ARN="${{ secrets.AWS_LAMBDA_ROLE_ARN }}"  # ✅ Safe
+          ROLE_ARN="${{ secrets.AWS_LAMBDA_ROLE_ARN }}"  # ✅ IAM Role ARN stored in GitHub Secrets
 
           if aws lambda get-function --function-name "$FN" >/dev/null 2>&1; then
-            aws lambda update-function-code --function-name "$FN" --zip-file fileb://$ZIP --region ap-south-1
+            echo "🔄 Updating existing Lambda..."
+            aws lambda update-function-code \
+              --function-name "$FN" \
+              --zip-file fileb://$ZIP \
+              --region ap-south-1
           else
-            aws lambda create-function --function-name "$FN" \
+            echo "🚀 Creating new Lambda..."
+            aws lambda create-function \
+              --function-name "$FN" \
               --runtime python3.10 \
               --role "$ROLE_ARN" \
-              --handler notebook.lambda_handler \
+              --handler lambda_function.lambda_handler \   # ✅ filename.function_name
               --zip-file fileb://$ZIP \
               --region ap-south-1
           fi
