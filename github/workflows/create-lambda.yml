@@ -1,0 +1,33 @@
+name: Create Lambda Function
+
+on:
+  push:
+    branches:
+      - main  # branch to trigger deployment
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Configure AWS credentials via OIDC
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: arn:aws:iam::960631463855:role/GitHub_action_workflow
+        aws-region: ap-south-1
+
+    - name: Create Lambda function
+      run: |
+        aws lambda create-function \
+          --function-name pk_github_action_lambda \
+          --runtime python3.11 \
+          --role arn:aws:iam::960631463855:role/LambdaExecution_from_github \
+          --handler lambda_function.lambda_handler \
+          --region ap-south-1

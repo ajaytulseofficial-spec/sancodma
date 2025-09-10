@@ -1,2 +1,5 @@
 # sancodma
+<<<<<<< HEAD
 # sancodma
+=======
+>>>>>>> dev
